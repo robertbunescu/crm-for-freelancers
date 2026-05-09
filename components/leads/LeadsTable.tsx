@@ -151,133 +151,135 @@ export function LeadsTable({ leads }: LeadsTableProps) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-2/40 border-b border-border-subtle">
-                <th className="text-left px-5 lg:px-6 h-9 align-middle">
-                  <button
-                    onClick={() => handleSort('name')}
-                    className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
-                  >
-                    Lead <SortIcon field="name" />
-                  </button>
-                </th>
-                <th className="text-left px-4 h-9 align-middle hidden md:table-cell">
-                  <button
-                    onClick={() => handleSort('company')}
-                    className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
-                  >
-                    Company <SortIcon field="company" />
-                  </button>
-                </th>
-                <th className="text-left px-4 h-9 align-middle">
-                  <span className="text-micro text-text-tertiary uppercase">
-                    Status
-                  </span>
-                </th>
-                <th className="text-right px-4 h-9 align-middle">
-                  <button
-                    onClick={() => handleSort('value')}
-                    className="flex items-center justify-end gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors ml-auto"
-                  >
-                    Value <SortIcon field="value" />
-                  </button>
-                </th>
-                <th className="text-left px-4 h-9 align-middle hidden lg:table-cell">
-                  <button
-                    onClick={() => handleSort('lastContact')}
-                    className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
-                  >
-                    Last Contact <SortIcon field="lastContact" />
-                  </button>
-                </th>
-                <th className="text-left px-4 h-9 align-middle hidden xl:table-cell">
-                  <span className="text-micro text-text-tertiary uppercase">
-                    Source
-                  </span>
-                </th>
-                <th className="w-12 h-9" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((lead, i) => (
-                <tr
-                  key={lead.id}
-                  className={cn(
-                    'group row-rail cursor-pointer',
-                    'transition-colors duration-fast',
-                    'hover:bg-surface-2/60',
-                    i !== filtered.length - 1 && 'border-b border-border-subtle'
-                  )}
+          <div className="w-full">
+            {/* Header - Full width on xl, hide columns at smaller breakpoints */}
+            <div
+              className="grid bg-surface-2/40 border-b border-border-subtle px-5 lg:px-6 h-9"
+              style={{ gridTemplateColumns: '1.6fr 1.5fr 0.8fr 0.8fr 1fr 0.9fr auto' }}
+            >
+              <div>
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
                 >
-                  <td className="px-5 lg:px-6 py-3.5 align-middle">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 transition-transform duration-base group-hover:scale-[1.04]"
-                        style={{
-                          background:
-                            'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
-                          boxShadow:
-                            'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover) / 0.4)',
-                        }}
-                      >
-                        {getInitials(lead.name)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[13.5px] font-semibold text-text-primary leading-tight tracking-[-0.01em] truncate">
-                          {lead.name}
-                        </div>
-                        <div className="text-[11.5px] text-text-tertiary mt-0.5 truncate">
-                          {lead.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 align-middle hidden md:table-cell">
-                    <div className="text-[13px] font-medium text-text-primary tracking-[-0.005em] truncate">
-                      {lead.company}
+                  Lead <SortIcon field="name" />
+                </button>
+              </div>
+              <div className="hidden md:block">
+                <button
+                  onClick={() => handleSort('company')}
+                  className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
+                >
+                  Company <SortIcon field="company" />
+                </button>
+              </div>
+              <div>
+                <span className="text-micro text-text-tertiary uppercase">
+                  Status
+                </span>
+              </div>
+              <div>
+                <button
+                  onClick={() => handleSort('value')}
+                  className="flex items-center justify-end gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors ml-auto"
+                >
+                  Value <SortIcon field="value" />
+                </button>
+              </div>
+              <div className="hidden lg:block">
+                <button
+                  onClick={() => handleSort('lastContact')}
+                  className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
+                >
+                  Last Contact <SortIcon field="lastContact" />
+                </button>
+              </div>
+              <div className="hidden xl:block">
+                <span className="text-micro text-text-tertiary uppercase">
+                  Source
+                </span>
+              </div>
+              <div className="w-12" />
+            </div>
+
+            {/* Rows */}
+            {filtered.map((lead, i) => (
+              <div
+                key={lead.id}
+                className={cn(
+                  'group grid cursor-pointer row-rail',
+                  'transition-colors duration-fast',
+                  'hover:bg-surface-2/60',
+                  'px-5 lg:px-6 py-3.5',
+                  i !== filtered.length - 1 && 'border-b border-border-subtle'
+                )}
+                style={{ gridTemplateColumns: '1.6fr 1.5fr 0.8fr 0.8fr 1fr 0.9fr auto' }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 transition-transform duration-base group-hover:scale-[1.04]"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
+                      boxShadow:
+                        'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover) / 0.4)',
+                    }}
+                  >
+                    {getInitials(lead.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-semibold text-text-primary leading-tight tracking-[-0.01em] truncate">
+                      {lead.name}
                     </div>
                     <div className="text-[11.5px] text-text-tertiary mt-0.5 truncate">
-                      {lead.industry}
+                      {lead.email}
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5 align-middle">
-                    <LeadStatusBadge status={lead.status} withDot />
-                  </td>
-                  <td className="px-4 py-3.5 align-middle text-right">
-                    <span className="font-mono tabular text-[13px] font-semibold text-text-primary">
-                      {formatCurrency(lead.value)}
+                  </div>
+                </div>
+                <div className="min-w-0 hidden md:block">
+                  <div className="text-[13px] font-medium text-text-primary tracking-[-0.005em] truncate">
+                    {lead.company}
+                  </div>
+                  <div className="text-[11.5px] text-text-tertiary mt-0.5 truncate">
+                    {lead.industry}
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <LeadStatusBadge status={lead.status} withDot />
+                </div>
+                <div className="flex items-center justify-end">
+                  <span className="font-mono tabular text-[13px] font-semibold text-text-primary">
+                    {formatCurrency(lead.value)}
+                  </span>
+                </div>
+                <div className="items-center hidden lg:flex">
+                  <div className="flex items-center gap-1.5 text-[11.5px] text-text-tertiary">
+                    <Calendar className="w-3 h-3 flex-shrink-0" />
+                    <span className="font-mono tabular">
+                      {formatDate(lead.lastContact)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3.5 align-middle hidden lg:table-cell">
-                    <div className="flex items-center gap-1.5 text-[11.5px] text-text-tertiary">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
-                      <span className="font-mono tabular">
-                        {formatDate(lead.lastContact)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 align-middle hidden xl:table-cell">
-                    <span className="inline-flex items-center h-5 px-1.5 rounded-sm text-[10.5px] font-semibold bg-surface-2 text-text-secondary">
-                      {lead.source}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3.5 align-middle w-12">
-                    <button
-                      className={cn(
-                        'w-7 h-7 rounded-md flex items-center justify-center',
-                        'text-text-tertiary hover:text-text-primary hover:bg-surface-2',
-                        'opacity-0 group-hover:opacity-100 transition-all duration-fast'
-                      )}
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+                <div className="items-center hidden xl:flex">
+                  <span className="inline-flex items-center h-5 px-1.5 rounded-sm text-[10.5px] font-semibold bg-surface-2 text-text-secondary">
+                    {lead.source}
+                  </span>
+                </div>
+                <div className="flex items-center justify-end w-12">
+                  <button
+                    className={cn(
+                      'w-7 h-7 rounded-md flex items-center justify-center',
+                      'text-text-tertiary hover:text-text-primary hover:bg-surface-2',
+                      'opacity-0 group-hover:opacity-100 transition-all duration-fast'
+                    )}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

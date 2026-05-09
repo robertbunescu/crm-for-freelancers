@@ -36,66 +36,66 @@ export function RecentLeadsTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-[13px] border-collapse">
-          <thead>
-            <tr className="bg-surface-2/40 border-b border-border-subtle">
-              <th className="text-left px-5 lg:px-6 h-9 align-middle text-micro text-text-tertiary uppercase">
-                Lead
-              </th>
-              <th className="text-left px-4 h-9 align-middle text-micro text-text-tertiary uppercase hidden sm:table-cell">
-                Status
-              </th>
-              <th className="text-right px-5 lg:px-6 h-9 align-middle text-micro text-text-tertiary uppercase">
-                Value
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {recent.map((lead, i) => (
-              <tr
-                key={lead.id}
-                className={cn(
-                  'group row-rail cursor-pointer',
-                  'transition-colors duration-fast',
-                  'hover:bg-surface-2/60',
-                  i !== recent.length - 1 && 'border-b border-border-subtle'
-                )}
-              >
-                <td className="px-5 lg:px-6 py-3 align-middle">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 transition-transform duration-base group-hover:scale-[1.04]"
-                      style={{
-                        background:
-                          'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
-                        boxShadow:
-                          'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover) / 0.4)',
-                      }}
-                    >
-                      {getInitials(lead.name)}
-                    </div>
-                    <div>
-                      <div className="text-[13.5px] font-semibold text-text-primary leading-tight tracking-[-0.01em]">
-                        {lead.name}
-                      </div>
-                      <div className="text-[11.5px] text-text-tertiary mt-0.5">
-                        {lead.company}
-                      </div>
-                    </div>
+        <div className="w-full text-[13px]">
+          <div
+            className="grid bg-surface-2/40 border-b border-border-subtle px-5 lg:px-6 h-9"
+            style={{ gridTemplateColumns: '1.7fr 0.8fr 0.8fr' }}
+          >
+            <div className="flex items-center text-micro text-text-tertiary uppercase">
+              Lead
+            </div>
+            <div className="items-center text-micro text-text-tertiary uppercase hidden sm:flex">
+              Status
+            </div>
+            <div className="flex items-center justify-end text-micro text-text-tertiary uppercase">
+              Value
+            </div>
+          </div>
+
+          {recent.map((lead, i) => (
+            <div
+              key={lead.id}
+              className={cn(
+                'group grid cursor-pointer row-rail',
+                'transition-colors duration-fast',
+                'hover:bg-surface-2/60',
+                'px-5 lg:px-6 py-3',
+                i !== recent.length - 1 && 'border-b border-border-subtle'
+              )}
+              style={{ gridTemplateColumns: '1.7fr 0.8fr 0.8fr' }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 transition-transform duration-base group-hover:scale-[1.04]"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
+                    boxShadow:
+                      'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover) / 0.4)',
+                  }}
+                >
+                  {getInitials(lead.name)}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[13.5px] font-semibold text-text-primary leading-tight tracking-[-0.01em] truncate">
+                    {lead.name}
                   </div>
-                </td>
-                <td className="px-4 py-3 align-middle hidden sm:table-cell">
-                  <LeadStatusBadge status={lead.status} withDot />
-                </td>
-                <td className="px-5 lg:px-6 py-3 align-middle text-right">
-                  <span className="font-mono tabular text-[13px] font-semibold text-text-primary">
-                    {formatCurrency(lead.value)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <div className="text-[11.5px] text-text-tertiary mt-0.5 truncate">
+                    {lead.company}
+                  </div>
+                </div>
+              </div>
+              <div className="items-center hidden sm:flex">
+                <LeadStatusBadge status={lead.status} withDot />
+              </div>
+              <div className="flex items-center justify-end">
+                <span className="font-mono tabular text-[13px] font-semibold text-text-primary">
+                  {formatCurrency(lead.value)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
