@@ -5,6 +5,7 @@ import { Search, Bell, Sun, Moon, ChevronDown, Menu } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useMobileMenu } from '@/contexts/MobileMenuContext'
+import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
 
 interface HeaderProps {
@@ -22,6 +23,7 @@ const headerSizeMap = {
 
 export function Header({ title, subtitle, action, size = 'default' }: HeaderProps) {
   const { resolvedTheme, setTheme } = useTheme()
+  const { userData } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -32,6 +34,14 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
   }, [])
 
   const isDark = resolvedTheme === 'dark'
+  const userName = userData?.name || 'User'
+  const userEmail = userData?.email || ''
+  const initials = userName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
     <header
@@ -160,19 +170,27 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
               'hover:bg-surface-2 transition-colors duration-base'
             )}
           >
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10.5px] font-bold text-white flex-shrink-0"
-              style={{
-                background:
-                  'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
-                boxShadow:
-                  'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover))',
-              }}
-            >
-              AK
-            </div>
+            {userData?.avatar ? (
+              <img
+                src={userData.avatar}
+                alt={userName}
+                className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10.5px] font-bold text-white flex-shrink-0"
+                style={{
+                  background:
+                    'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
+                  boxShadow:
+                    'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover))',
+                }}
+              >
+                {initials}
+              </div>
+            )}
             <span className="text-[12.5px] font-medium text-text-primary hidden md:block tracking-[-0.005em]">
-              Alex Kim
+              {userName}
             </span>
             <ChevronDown className="w-3 h-3 text-text-tertiary hidden md:block" />
           </button>
@@ -192,10 +210,10 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
               >
                 <div className="px-3 py-2.5 border-b border-border-subtle">
                   <div className="text-[13px] font-semibold text-text-primary">
-                    Alex Kim
+                    {userName}
                   </div>
                   <div className="text-[11.5px] text-text-tertiary mt-0.5">
-                    alex@nexuscrm.io
+                    {userEmail}
                   </div>
                 </div>
                 {[

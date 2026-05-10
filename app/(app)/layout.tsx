@@ -1,5 +1,10 @@
 import { AppShell } from '@/components/layout/AppShell'
+import { ProtectedLayout } from '@/components/protected-layout'
 
 export default function AppGroupLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>
+  return (
+    <ProtectedLayout>
+      <AppShell>{children}</AppShell>
+    </ProtectedLayout>
+  )
 }

@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
 
 const sparklines: Record<string, number[]> = {
@@ -8,6 +10,13 @@ const sparklines: Record<string, number[]> = {
   clients: [2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5],
   conversion: [12, 13, 12.2, 14, 13.5, 15, 16, 16.5, 17, 17.5, 18, 18.2],
   revenue: [22, 28, 30, 34, 32, 38, 36, 40, 39, 42, 43.2, 44.5],
+}
+
+interface Stats {
+  totalLeads: number
+  activeClients: number
+  conversionRate: number
+  monthlyRevenue: number
 }
 
 function Sparkline({
@@ -53,42 +62,68 @@ function Sparkline({
   )
 }
 
-const kpis = [
-  {
-    label: 'Total Leads',
-    value: '47',
-    change: 12.5,
-    changeLabel: 'vs last month',
-    spark: sparklines.leads,
-    tone: 'accent' as const,
-  },
-  {
-    label: 'Active Clients',
-    value: '5',
-    change: 25.0,
-    changeLabel: 'vs last month',
-    spark: sparklines.clients,
-    tone: 'success' as const,
-  },
-  {
-    label: 'Conversion Rate',
-    value: '18.2%',
-    change: 3.1,
-    changeLabel: 'vs last month',
-    spark: sparklines.conversion,
-    tone: 'warning' as const,
-  },
-  {
-    label: 'Monthly Revenue',
-    value: '$44,500',
-    change: 8.3,
-    changeLabel: 'vs March',
-    spark: sparklines.revenue,
-    tone: 'accent' as const,
-  },
-]
+const defaultStats: Stats = {
+  totalLeads: 47,
+  activeClients: 5,
+  conversionRate: 18.2,
+  monthlyRevenue: 44500
+}
 
 export function KPICards() {
+  const { userData } = useAuth()
+  const [stats, setStats] = useState<Stats>(defaultStats)
+
+  useEffect(() => {
+    if (!userData?.id) return
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`/api/stats?userId=${userData.id}`)
+        const data = await res.json()
+        setStats(data)
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+      }
+    }
+
+    fetchStats()
+  }, [userData?.id])
+
+  const kpis = [
+    {
+      label: 'Total Leads',
+      value: stats.totalLeads.toString(),
+      change: 12.5,
+      changeLabel: 'vs last month',
+      spark: sparklines.leads,
+      tone: 'accent' as const,
+    },
+    {
+      label: 'Active Clients',
+      value: stats.activeClients.toString(),
+      change: 25.0,
+      changeLabel: 'vs last month',
+      spark: sparklines.clients,
+      tone: 'success' as const,
+    },
+    {
+      label: 'Conversion Rate',
+      value: `${stats.conversionRate.toFixed(1)}%`,
+      change: 3.1,
+      changeLabel: 'vs last month',
+      spark: sparklines.conversion,
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Monthly Revenue',
+      value: `$${stats.monthlyRevenue.toLocaleString()}`,
+      change: 8.3,
+      changeLabel: 'vs March',
+      spark: sparklines.revenue,
+      tone: 'accent' as const,
+    },
+  ]
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
       {kpis.map(({ label, value, change, changeLabel, spark, tone }, idx) => {

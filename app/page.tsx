@@ -3,19 +3,29 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, ArrowUpRight } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('alex@nexuscrm.io')
-  const [password, setPassword] = useState('••••••••••')
+  const { signIn } = useAuth()
+  const [email, setEmail] = useState('admin@nexuscrm.io')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleLogin = async (e?: { preventDefault?: () => void }) => {
     e?.preventDefault?.()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
-    router.push('/dashboard')
+    setError('')
+
+    try {
+      await signIn(email, password)
+      router.push('/dashboard')
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in')
+      setLoading(false)
+    }
   }
 
   return (
@@ -125,6 +135,7 @@ export default function LoginPage() {
               value={email}
               onChange={setEmail}
               placeholder="you@company.com"
+              disabled={loading}
             />
 
             <Field
@@ -134,6 +145,7 @@ export default function LoginPage() {
               value={password}
               onChange={setPassword}
               placeholder="••••••••"
+              disabled={loading}
               rightSlot={
                 <button
                   type="button"
@@ -153,6 +165,12 @@ export default function LoginPage() {
                 </button>
               }
             />
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-[6px] text-red-600 text-[12px]">
+                {error}
+              </div>
+            )}
 
             <label className="flex items-center gap-2 pt-1 cursor-pointer select-none">
               <input
@@ -230,6 +248,7 @@ function Field({
   placeholder,
   rightSlot,
   labelRight,
+  disabled,
 }: {
   label: string
   id: string
@@ -239,6 +258,7 @@ function Field({
   placeholder?: string
   rightSlot?: React.ReactNode
   labelRight?: React.ReactNode
+  disabled?: boolean
 }) {
   return (
     <div className="space-y-2">
@@ -255,7 +275,8 @@ function Field({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-[46px] px-4 pr-10 text-[13.5px] rounded-[8px] bg-slate-50/60 text-slate-900 placeholder:text-slate-400 border border-slate-200/70 focus:outline-none focus:bg-white focus:border-slate-300 focus:ring-[3px] focus:ring-slate-900/[0.03] transition-all duration-300"
+          disabled={disabled}
+          className="w-full h-[46px] px-4 pr-10 text-[13.5px] rounded-[8px] bg-slate-50/60 text-slate-900 placeholder:text-slate-400 border border-slate-200/70 focus:outline-none focus:bg-white focus:border-slate-300 focus:ring-[3px] focus:ring-slate-900/[0.03] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
         />
         {rightSlot && (
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightSlot}</div>

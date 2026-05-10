@@ -1,5 +1,6 @@
 'use client'
 
+import { useAuth } from '@/lib/auth-context'
 import { Header } from '@/components/layout/Header'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { KPICards } from '@/components/dashboard/KPICards'
@@ -9,11 +10,14 @@ import { RecentLeadsTable } from '@/components/dashboard/RecentLeadsTable'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 
 export default function DashboardPage() {
+  const { userData } = useAuth()
+  const firstName = userData?.name?.split(' ')[0] || 'User'
+
   return (
     <div className="flex flex-col flex-1">
       <Header
         title="Dashboard"
-        subtitle="Welcome back, Alex. Here is your business overview."
+        subtitle={`Welcome back, ${firstName}. Here is your business overview.`}
       />
       <PageContainer>
         <div className="space-y-6 lg:space-y-7">

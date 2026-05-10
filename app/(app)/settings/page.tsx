@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
+import { useAuth } from '@/lib/auth-context'
 import {
   Camera,
   Eye,
@@ -38,6 +39,7 @@ interface ProfileState {
 }
 
 interface WorkspaceState {
+  id: string
   name: string
   slug: string
   currency: string
@@ -131,30 +133,112 @@ export default function SettingsPage() {
 
 function ProfileSection() {
   const { theme, setTheme } = useTheme()
+  const { userData } = useAuth()
   const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-
   const [profile, setProfile] = useState<ProfileState>({
-    firstName: 'Alex',
-    lastName: 'Kim',
-    email: 'alex@nexuscrm.io',
-    jobTitle: 'Operations Lead',
-    bio: 'Building a calmer, sharper way to run a freelance practice.',
+    firstName: '',
+    lastName: '',
+    email: '',
+    jobTitle: '',
+    bio: '',
     timezone: 'America/New_York',
     language: 'English',
   })
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [avatar, setAvatar] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+    if (userData) {
+      const fullName = userData.name || ''
+      const [firstName, ...lastNameParts] = fullName.split(' ')
+      const lastName = lastNameParts.join(' ')
+      setProfile(p => ({
+        ...p,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        email: userData.email || '',
+      }))
+      setAvatar((userData as any)?.avatar || null)
+    }
+  }, [userData])
 
   const set = <K extends keyof ProfileState>(key: K, value: ProfileState[K]) =>
     setProfile(p => ({ ...p, [key]: value }))
 
   const handleSave = async () => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 700))
-    setSaving(false)
-    toast.success('Profile updated', {
-      description: 'Your changes have been saved.',
-    })
+    try {
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userData?.id,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          jobTitle: profile.jobTitle,
+          bio: profile.bio,
+          timezone: profile.timezone,
+          language: profile.language,
+          avatar: avatar,
+        })
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to save profile')
+      }
+
+      const updatedUser = await res.json()
+
+      window.dispatchEvent(new Event('user-updated'))
+
+      toast.success('Profile updated', {
+        description: 'Your changes have been saved.',
+      })
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+      toast.error('Failed to save', {
+        description: 'Please try again.',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userData?.id) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('userId', userData.id)
+
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to upload avatar')
+      }
+
+      const data = await res.json()
+      setAvatar(data.avatarUrl)
+
+      toast.success('Avatar uploaded', {
+        description: 'Click Save changes to apply changes.',
+      })
+    } catch (error) {
+      console.error('Failed to upload avatar:', error)
+      toast.error('Upload failed', {
+        description: 'Please try again with a different image.',
+      })
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -191,33 +275,51 @@ function ProfileSection() {
         {/* Avatar block */}
         <div className="flex items-center gap-5 pb-6 mb-6 border-b border-border-subtle">
           <div className="relative group">
-            <div
-              className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-[22px] font-bold text-white"
-              style={{
-                background:
-                  'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
-                boxShadow:
-                  'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover))',
-              }}
-            >
-              {getInitials(profile.firstName, profile.lastName)}
-            </div>
+            {avatar ? (
+              <img
+                src={avatar}
+                alt="Avatar"
+                className="w-[72px] h-[72px] rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-[22px] font-bold text-white"
+                style={{
+                  background:
+                    'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
+                  boxShadow:
+                    'inset 0 1px 0 rgb(255 255 255 / 0.16), 0 0 0 1px hsl(var(--accent-hover))',
+                }}
+              >
+                {getInitials(profile.firstName, profile.lastName)}
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+              className="hidden"
+              id="avatar-input"
+            />
             <button
               type="button"
-              onClick={() =>
-                toast.message('Avatar upload', {
-                  description: 'Drag-and-drop upload coming soon.',
-                })
-              }
+              onClick={() => document.getElementById('avatar-input')?.click()}
+              disabled={uploading}
               className={cn(
                 'absolute inset-0 rounded-full flex items-center justify-center',
                 'bg-black/0 group-hover:bg-black/40 backdrop-blur-0 group-hover:backdrop-blur-[2px]',
                 'opacity-0 group-hover:opacity-100',
-                'transition-all duration-base'
+                'transition-all duration-base',
+                uploading && 'opacity-100 bg-black/40'
               )}
               aria-label="Change avatar"
             >
-              <Camera className="w-5 h-5 text-white" />
+              {uploading ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
             </button>
           </div>
           <div className="flex-1 min-w-0">
@@ -228,10 +330,18 @@ function ProfileSection() {
               JPG, PNG, or GIF. 1MB max. Square images work best.
             </p>
             <div className="flex items-center gap-2 mt-3">
-              <Button variant="secondary" size="xs">
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => document.getElementById('avatar-input')?.click()}
+              >
                 Upload
               </Button>
-              <Button variant="ghost" size="xs">
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => setAvatar(null)}
+              >
                 Remove
               </Button>
             </div>
@@ -399,6 +509,7 @@ function ProfileSection() {
 /* ----------------------------- PASSWORD ----------------------------------- */
 
 function PasswordSection() {
+  const { userData, user } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -416,14 +527,36 @@ function PasswordSection() {
       return
     }
     setSaving(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
-    setCurrent('')
-    setNext('')
-    setConfirm('')
-    toast.success('Password updated', {
-      description: 'Use your new password the next time you sign in.',
-    })
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userData?.id,
+          currentPassword: current,
+          newPassword: next,
+        })
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.details || error.error || 'Failed to update password')
+      }
+
+      setCurrent('')
+      setNext('')
+      setConfirm('')
+      toast.success('Password updated', {
+        description: 'Use your new password the next time you sign in.',
+      })
+    } catch (error) {
+      console.error('Failed to update password:', error)
+      toast.error('Password update failed', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -587,13 +720,61 @@ function passwordStrength(pw: string) {
 /* ----------------------------- WORKSPACE ---------------------------------- */
 
 function WorkspaceSection() {
+  const { userData } = useAuth()
   const [workspace, setWorkspace] = useState<WorkspaceState>({
-    name: 'Nexus Studio',
-    slug: 'nexus-studio',
+    id: '',
+    name: '',
+    slug: '',
     currency: 'USD',
-    industry: 'Design',
+    industry: '',
   })
+  const [members, setMembers] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userData?.id) return
+
+    const loadWorkspace = async () => {
+      try {
+        // Fetch workspace
+        const wsRes = await fetch(`/api/workspace?userId=${userData.id}`)
+        let wsData = await wsRes.json()
+
+        if (!wsData) {
+          // Seed workspace if doesn't exist
+          const seedRes = await fetch('/api/workspace/seed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userData.id })
+          })
+          const seedData = await seedRes.json()
+          wsData = seedData.workspace
+        }
+
+        setWorkspace({
+          id: wsData?.id || '',
+          name: wsData?.name || '',
+          slug: wsData?.slug || '',
+          currency: wsData?.currency || 'USD',
+          industry: wsData?.industry || '',
+        })
+
+        // Fetch members
+        if (wsData?.id) {
+          const membersRes = await fetch(`/api/workspace/members?workspaceId=${wsData.id}`)
+          const membersData = await membersRes.json()
+          setMembers(membersData)
+        }
+      } catch (error) {
+        console.error('Failed to load workspace:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadWorkspace()
+  }, [userData?.id])
 
   const set = <K extends keyof WorkspaceState>(
     key: K,
@@ -602,9 +783,34 @@ function WorkspaceSection() {
 
   const handleSave = async () => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    setSaving(false)
-    toast.success('Workspace updated')
+    try {
+      const res = await fetch('/api/workspace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: workspace.id,
+          name: workspace.name,
+          slug: workspace.slug,
+          currency: workspace.currency,
+          industry: workspace.industry,
+        })
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to update workspace')
+      }
+
+      toast.success('Workspace updated', {
+        description: 'Your workspace settings have been saved.',
+      })
+    } catch (error) {
+      console.error('Failed to update workspace:', error)
+      toast.error('Failed to save', {
+        description: 'Please try again.',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -738,49 +944,45 @@ function WorkspaceSection() {
         description="Invite collaborators to share leads, clients, and deal updates."
       >
         <div className="space-y-2">
-          {[
-            { name: 'Alex Kim', email: 'alex@nexuscrm.io', role: 'Owner' },
-            {
-              name: 'Jordan Reyes',
-              email: 'jordan@nexuscrm.io',
-              role: 'Admin',
-            },
-            { name: 'Sam Patel', email: 'sam@nexuscrm.io', role: 'Member' },
-          ].map(member => (
-            <div
-              key={member.email}
-              className={cn(
-                'flex items-center gap-3 p-3 rounded-lg',
-                'border border-border-subtle',
-                'transition-colors duration-base hover:bg-surface-2/40'
-              )}
-            >
+          {members.length > 0 ? (
+            members.map(membership => (
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                style={{
-                  background:
-                    'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
-                  boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.16)',
-                }}
-              >
-                {getInitials(
-                  member.name.split(' ')[0],
-                  member.name.split(' ')[1] ?? ''
+                key={membership.user.id}
+                className={cn(
+                  'flex items-center gap-3 p-3 rounded-lg',
+                  'border border-border-subtle',
+                  'transition-colors duration-base hover:bg-surface-2/40'
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-text-primary truncate">
-                  {member.name}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+                  style={{
+                    background:
+                      'linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-hover)) 100%)',
+                    boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 0.16)',
+                  }}
+                >
+                  {getInitials(
+                    membership.user.name?.split(' ')[0] || 'U',
+                    membership.user.name?.split(' ')[1] ?? ''
+                  )}
                 </div>
-                <div className="text-[11.5px] text-text-tertiary truncate">
-                  {member.email}
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium text-text-primary truncate">
+                    {membership.user.name || 'User'}
+                  </div>
+                  <div className="text-[11.5px] text-text-tertiary truncate">
+                    {membership.user.email}
+                  </div>
                 </div>
+                <span className="inline-flex items-center h-5 px-1.5 rounded-sm text-[10.5px] font-semibold bg-surface-2 text-text-secondary">
+                  {membership.role}
+                </span>
               </div>
-              <span className="inline-flex items-center h-5 px-1.5 rounded-sm text-[10.5px] font-semibold bg-surface-2 text-text-secondary">
-                {member.role}
-              </span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-[13px] text-text-tertiary py-3">No team members yet</p>
+          )}
         </div>
         <div className="mt-4">
           <Button variant="secondary" size="sm">
@@ -795,6 +997,7 @@ function WorkspaceSection() {
 /* --------------------------- NOTIFICATIONS -------------------------------- */
 
 function NotificationsSection() {
+  const { userData } = useAuth()
   const [prefs, setPrefs] = useState<NotificationState>({
     emailDigest: true,
     emailMentions: true,
@@ -802,15 +1005,50 @@ function NotificationsSection() {
     inAppActivity: true,
     inAppReminders: true,
   })
+  const [saving, setSaving] = useState(false)
 
   const toggle = (key: keyof NotificationState) =>
     setPrefs(p => ({ ...p, [key]: !p[key] }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    await new Promise(r => setTimeout(r, 400))
+    setSaving(false)
+    toast.success('Notification preferences saved', {
+      description: 'Your settings have been updated.',
+    })
+  }
 
   return (
     <div className="animate-fade-in space-y-6">
       <SettingsCard
         title="Email notifications"
         description="Decide which updates land in your inbox."
+        footer={
+          <>
+            <Button variant="secondary" size="sm">
+              Reset
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Saving
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Save preferences
+                </>
+              )}
+            </Button>
+          </>
+        }
       >
         <div className="divide-y divide-border-subtle">
           <ToggleRow
@@ -869,12 +1107,12 @@ function ToggleRow({
   onChange: () => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
-      <div className="flex-1 min-w-0">
+    <div className="flex items-center justify-between gap-6 py-4 first:pt-0 last:pb-0">
+      <div className="flex-1 min-w-0 pr-4">
         <p className="text-[13px] font-medium text-text-primary tracking-[-0.005em]">
           {label}
         </p>
-        <p className="text-[12px] text-text-tertiary mt-0.5 leading-relaxed">
+        <p className="text-[12px] text-text-tertiary mt-1 leading-relaxed">
           {description}
         </p>
       </div>
@@ -884,20 +1122,19 @@ function ToggleRow({
         aria-checked={checked}
         onClick={onChange}
         className={cn(
-          'relative w-9 h-5 rounded-full flex-shrink-0',
-          'transition-all duration-base ease-out-expo',
-          'focus:outline-none focus-visible:shadow-focus',
+          'relative inline-flex w-10 h-6 rounded-full flex-shrink-0',
+          'transition-colors duration-200',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
           checked
-            ? 'bg-[linear-gradient(180deg,hsl(var(--accent))_0%,hsl(var(--accent-hover))_100%)] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.16),0_0_0_1px_hsl(var(--accent-hover))]'
-            : 'bg-surface-3 shadow-[inset_0_0_0_1px_rgb(var(--border-default))]'
+            ? 'bg-accent shadow-md'
+            : 'bg-surface-3 border border-border-subtle'
         )}
       >
         <span
-          className={cn(
-            'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm',
-            'transition-transform duration-base ease-out-expo',
-            checked ? 'translate-x-[18px]' : 'translate-x-0.5'
-          )}
+          className="inline-block w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform duration-200"
+          style={{
+            transform: checked ? 'translateX(18px)' : 'translateX(2px)',
+          }}
         />
       </button>
     </div>

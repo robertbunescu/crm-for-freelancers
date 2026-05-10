@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 import { mockLeads } from '@/lib/mock-data'
 import { LeadStatusBadge } from '@/components/shared/StatusBadge'
 import { cn } from '@/lib/utils'
@@ -13,7 +15,34 @@ function getInitials(name: string) {
 }
 
 export function RecentLeadsTable() {
-  const recent = mockLeads.slice(0, 6)
+  const { userData } = useAuth()
+  const [leads, setLeads] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userData?.id) {
+      setLeads(mockLeads.slice(0, 6))
+      setLoading(false)
+      return
+    }
+
+    const fetchLeads = async () => {
+      try {
+        const res = await fetch(`/api/leads?userId=${userData.id}`)
+        const data = await res.json()
+        setLeads(data.length > 0 ? data.slice(0, 6) : mockLeads.slice(0, 6))
+      } catch (error) {
+        console.error('Failed to fetch leads:', error)
+        setLeads(mockLeads.slice(0, 6))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLeads()
+  }, [userData?.id])
+
+  const recent = leads
 
   return (
     <div className="card-static overflow-hidden">
