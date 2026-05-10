@@ -8,13 +8,24 @@ import {
   ChevronDown,
   Calendar,
   MoreHorizontal,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import type { Lead, LeadStatus } from '@/lib/types'
 import { LeadStatusBadge } from '@/components/shared/StatusBadge'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 
 interface LeadsTableProps {
   leads: Lead[]
+  onEdit?: (lead: Lead) => void
+  onDelete?: (id: string) => void
 }
 
 type SortField = 'name' | 'company' | 'value' | 'lastContact'
@@ -41,7 +52,7 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export function LeadsTable({ leads }: LeadsTableProps) {
+export function LeadsTable({ leads, onEdit, onDelete }: LeadsTableProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all')
   const [sortField, setSortField] = useState<SortField>('lastContact')
@@ -266,16 +277,38 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                   </span>
                 </div>
                 <div className="flex items-center justify-end w-12">
-                  <button
-                    className={cn(
-                      'w-7 h-7 rounded-md flex items-center justify-center',
-                      'text-text-tertiary hover:text-text-primary hover:bg-surface-2',
-                      'opacity-0 group-hover:opacity-100 transition-all duration-fast'
-                    )}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={cn(
+                          'w-7 h-7 rounded-md flex items-center justify-center',
+                          'text-text-tertiary hover:text-text-primary hover:bg-surface-2',
+                          'opacity-0 group-hover:opacity-100 transition-all duration-fast',
+                          'data-[state=open]:opacity-100 data-[state=open]:bg-surface-2 data-[state=open]:text-text-primary'
+                        )}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36">
+                      <DropdownMenuItem
+                        onClick={e => { e.stopPropagation(); onEdit?.(lead) }}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={e => { e.stopPropagation(); onDelete?.(lead.id) }}
+                        className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
