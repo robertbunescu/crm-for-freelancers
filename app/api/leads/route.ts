@@ -28,3 +28,57 @@ export async function GET(req: NextRequest) {
     return NextResponse.json([])
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { userId, name, email, phone, company, status, value, source, notes } = body
+
+    if (!userId || !name) {
+      return NextResponse.json({ error: 'userId and name are required' }, { status: 400 })
+    }
+
+    const { prisma } = await import('@/lib/prisma')
+
+    const lead = await prisma.lead.create({
+      data: {
+        userId,
+        name,
+        ...(email && { email }),
+        ...(phone && { phone }),
+        ...(company && { company }),
+        ...(status && { status }),
+        ...(value !== undefined && value !== null && { value: parseFloat(value) }),
+        ...(source && { source }),
+        ...(notes && { notes }),
+      }
+    })
+
+    // Generate notification if user has inapp activity feed enabled
+    try {
+      const prefs = await prisma.notificationPreference.findUnique({ where: { userId } })
+      if (!prefs || prefs.inappActivityFeed) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            type: 'lead_created',
+            title: 'New lead added',
+            message: `${name}${company ? ` from ${company}` : ''} was added to your pipeline.`,
+            resourceType: 'lead',
+            resourceId: lead.id,
+          }
+        })
+      }
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError)
+    }
+
+    return NextResponse.json(lead)
+  } catch (error) {
+    console.error('Failed to create lead:', error)
+    return NextResponse.json(
+      { error: 'Failed to create lead', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}

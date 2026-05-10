@@ -1,12 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Search, Bell, Sun, Moon, ChevronDown, Menu } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Search, Bell, Sun, Moon, ChevronDown, Menu, UserPlus, CheckCheck } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useMobileMenu } from '@/contexts/MobileMenuContext'
 import { useAuth } from '@/lib/auth-context'
 import { cn } from '@/lib/utils'
+
+interface Notification {
+  id: string
+  type: string
+  title: string
+  message: string
+  read: boolean
+  createdAt: string
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'Just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
 
 interface HeaderProps {
   title: string
@@ -28,10 +47,69 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
   const [searchFocused, setSearchFocused] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { openMenu } = useMobileMenu()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+  const profileRef = useRef<HTMLDivElement>(null)
+
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  const fetchNotifications = async () => {
+    if (!userData?.id) return
+    try {
+      const res = await fetch(`/api/notifications?userId=${userData.id}`)
+      if (res.ok) setNotifications(await res.json())
+    } catch {}
+  }
+
+  const markAllRead = async () => {
+    if (!userData?.id || unreadCount === 0) return
+    try {
+      await fetch('/api/notifications/read', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userData.id })
+      })
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    } catch {}
+  }
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!userData?.id) return
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000)
+    window.addEventListener('notification-updated', fetchNotifications)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('notification-updated', fetchNotifications)
+    }
+  }, [userData?.id])
+
+  useEffect(() => {
+    if (!notifOpen) return
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [notifOpen])
+
+  useEffect(() => {
+    if (!profileOpen) return
+    const handler = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [profileOpen])
 
   const isDark = resolvedTheme === 'dark'
   const userName = userData?.name || 'User'
@@ -137,22 +215,87 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
         </button>
 
         {/* Notifications */}
-        <button
-          className={cn(
-            'relative w-8 h-8 rounded-md flex items-center justify-center',
-            'text-text-secondary hover:text-text-primary hover:bg-surface-2',
-            'transition-colors duration-base'
-          )}
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={async () => {
+              if (!notifOpen) {
+                await fetchNotifications()
+                markAllRead()
+              }
+              setNotifOpen(!notifOpen)
+            }}
             className={cn(
-              'absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
-              'bg-accent shadow-[0_0_0_2px_hsl(var(--bg-app))]'
+              'relative w-8 h-8 rounded-md flex items-center justify-center',
+              'text-text-secondary hover:text-text-primary hover:bg-surface-2',
+              'transition-colors duration-base'
             )}
-          />
-        </button>
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className={cn(
+                'absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full',
+                'bg-accent shadow-[0_0_0_2px_hsl(var(--bg-app))]'
+              )} />
+            )}
+          </button>
+
+          {notifOpen && (
+            <div className={cn(
+                'absolute right-0 top-full mt-1.5 w-80 z-20 overflow-hidden',
+                'rounded-lg bg-surface-3/95 backdrop-blur-xl',
+                'border border-border-strong shadow-lg'
+              )}>
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-subtle">
+                  <span className="text-[13px] font-semibold text-text-primary">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-hover transition-colors"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Bell className="w-6 h-6 text-text-tertiary mb-2" />
+                      <p className="text-[12.5px] text-text-tertiary">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map(n => (
+                      <div
+                        key={n.id}
+                        className={cn(
+                          'px-3 py-2.5 border-b border-border-subtle last:border-0',
+                          'flex items-start gap-2.5',
+                          !n.read && 'bg-accent/5'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+                          'bg-accent/10 text-accent'
+                        )}>
+                          <UserPlus className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] font-medium text-text-primary leading-snug">{n.title}</p>
+                          <p className="text-[11.5px] text-text-tertiary mt-0.5 leading-snug">{n.message}</p>
+                          <p className="text-[10.5px] text-text-tertiary mt-1">{timeAgo(n.createdAt)}</p>
+                        </div>
+                        {!n.read && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+            </div>
+          )}
+        </div>
 
         {/* Action slot */}
         {action && (
@@ -162,7 +305,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
         )}
 
         {/* Profile */}
-        <div className="relative pl-2 ml-1 border-l border-border-subtle">
+        <div className="relative pl-2 ml-1 border-l border-border-subtle" ref={profileRef}>
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className={cn(
@@ -196,12 +339,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
           </button>
 
           {profileOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setProfileOpen(false)}
-              />
-              <div
+            <div
                 className={cn(
                   'absolute right-0 top-full mt-1.5 w-56 z-20 overflow-hidden py-1',
                   'rounded-lg bg-surface-3/95 backdrop-blur-xl',
@@ -248,8 +386,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
                     Sign out
                   </Link>
                 </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>

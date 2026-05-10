@@ -17,7 +17,7 @@ function getInitials(name: string) {
 export function RecentLeadsTable() {
   const { userData } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   useEffect(() => {
     if (!userData?.id) {
@@ -30,7 +30,17 @@ export function RecentLeadsTable() {
       try {
         const res = await fetch(`/api/leads?userId=${userData.id}`)
         const data = await res.json()
-        setLeads(data.length > 0 ? data.slice(0, 6) : mockLeads.slice(0, 6))
+        if (data.length > 0) {
+          const normalized = data.slice(0, 6).map((d: any) => ({
+            ...d,
+            status: (d.status as string).toLowerCase(),
+            company: d.company ?? '',
+            value: d.value ?? 0,
+          }))
+          setLeads(normalized)
+        } else {
+          setLeads(mockLeads.slice(0, 6))
+        }
       } catch (error) {
         console.error('Failed to fetch leads:', error)
         setLeads(mockLeads.slice(0, 6))

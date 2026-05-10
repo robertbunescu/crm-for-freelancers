@@ -25,11 +25,41 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leads             Lead[]
-  clients           Client[]
-  tasks             Task[]
-  ownedWorkspaces   Workspace[]  @relation("owner")
-  memberships       Membership[]
+  leads                  Lead[]
+  clients                Client[]
+  tasks                  Task[]
+  ownedWorkspaces        Workspace[]  @relation("owner")
+  memberships            Membership[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+}
+
+model Notification {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String
+  title        String
+  message      String
+  read         Boolean  @default(false)
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailWeeklyDigest Boolean  @default(true)
+  emailMentions     Boolean  @default(true)
+  emailDealChanges  Boolean  @default(false)
+  inappActivityFeed Boolean  @default(true)
+  inappTaskReminders Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Lead {

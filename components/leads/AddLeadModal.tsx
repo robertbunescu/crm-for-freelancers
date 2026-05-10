@@ -7,6 +7,7 @@ import type { Lead, LeadStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface AddLeadModalProps {
+  userId?: string
   onClose: () => void
   onAdd: (lead: Lead) => void
 }
@@ -49,7 +50,37 @@ const validateEmail = (email: string) =>
 const inputBase =
   'w-full h-10 px-3 text-[13.5px] rounded-md bg-surface-inset text-text-primary placeholder:text-text-tertiary border transition-[background-color,border-color,box-shadow] duration-base hover:border-border-strong focus:outline-none focus:bg-surface-1'
 
-export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
+function Field({
+  label,
+  field,
+  required,
+  error,
+  children,
+}: {
+  label: string
+  field?: keyof FormErrors
+  required?: boolean
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[12px] font-medium text-text-secondary tracking-[-0.005em]">
+        {label}{' '}
+        {required && <span className="text-danger">*</span>}
+      </label>
+      {children}
+      {field && error && (
+        <div className="flex items-center gap-1.5 text-[11.5px] text-danger">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function AddLeadModal({ userId, onClose, onAdd }: AddLeadModalProps) {
   const [form, setForm] = useState({
     name: '',
     company: '',
@@ -96,23 +127,67 @@ export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    onAdd({
-      id: `l${Date.now()}`,
-      name: form.name.trim(),
-      company: form.company.trim(),
-      email: form.email.trim(),
-      phone: form.phone,
-      status: form.status,
-      value: parseInt(form.value) || 0,
-      lastContact: new Date().toISOString().split('T')[0],
-      source: form.source,
-      industry: form.industry,
-      notes: form.notes,
-    })
-    toast.success(`Lead added`, {
-      description: `${form.name} from ${form.company} has been added to your pipeline.`,
-    })
+    try {
+      let lead: Lead
+      if (userId) {
+        const res = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            name: form.name.trim(),
+            company: form.company.trim(),
+            email: form.email.trim(),
+            phone: form.phone,
+            status: form.status.toUpperCase(),
+            value: parseFloat(form.value) || 0,
+            source: form.source,
+            notes: form.notes,
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          lead = {
+            id: data.id,
+            name: data.name,
+            company: data.company ?? form.company.trim(),
+            email: data.email ?? form.email.trim(),
+            phone: data.phone ?? form.phone,
+            status: (data.status as string).toLowerCase() as LeadStatus,
+            value: data.value ?? 0,
+            lastContact: new Date(data.createdAt).toISOString().split('T')[0],
+            source: data.source ?? form.source,
+            industry: form.industry,
+            notes: data.notes ?? form.notes,
+          }
+        } else {
+          throw new Error('API error')
+        }
+      } else {
+        lead = {
+          id: `l${Date.now()}`,
+          name: form.name.trim(),
+          company: form.company.trim(),
+          email: form.email.trim(),
+          phone: form.phone,
+          status: form.status,
+          value: parseInt(form.value) || 0,
+          lastContact: new Date().toISOString().split('T')[0],
+          source: form.source,
+          industry: form.industry,
+          notes: form.notes,
+        }
+      }
+      onAdd(lead)
+      window.dispatchEvent(new Event('notification-updated'))
+      toast.success(`Lead added`, {
+        description: `${form.name} from ${form.company} has been added to your pipeline.`,
+      })
+    } catch {
+      toast.error('Failed to save lead', { description: 'Please try again.' })
+      setLoading(false)
+      return
+    }
   }
 
   const inputCls = (field: keyof FormErrors) =>
@@ -126,32 +201,6 @@ export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
   const selectCls = cn(
     inputBase,
     'border-border-default focus:border-accent focus:shadow-focus appearance-none bg-[length:16px] bg-no-repeat'
-  )
-
-  const Field = ({
-    label,
-    field,
-    required,
-    children,
-  }: {
-    label: string
-    field?: keyof FormErrors
-    required?: boolean
-    children: React.ReactNode
-  }) => (
-    <div className="space-y-1.5">
-      <label className="text-[12px] font-medium text-text-secondary tracking-[-0.005em]">
-        {label}{' '}
-        {required && <span className="text-danger">*</span>}
-      </label>
-      {children}
-      {field && touched[field] && errors[field] && (
-        <div className="flex items-center gap-1.5 text-[11.5px] text-danger">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          {errors[field]}
-        </div>
-      )}
-    </div>
   )
 
   return (
@@ -186,43 +235,34 @@ export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Full name" field="name" required>
+            <Field label="Full name" field="name" required error={touched.name ? errors.name : undefined}>
               <input
                 className={inputCls('name')}
                 placeholder="Jane Smith"
                 value={form.name}
                 onChange={e => set('name', e.target.value)}
-                onBlur={() => {
-                  touch('name')
-                  validate(form)
-                }}
+                onBlur={() => { touch('name'); validate(form) }}
               />
             </Field>
-            <Field label="Company" field="company" required>
+            <Field label="Company" field="company" required error={touched.company ? errors.company : undefined}>
               <input
                 className={inputCls('company')}
                 placeholder="Acme Corp"
                 value={form.company}
                 onChange={e => set('company', e.target.value)}
-                onBlur={() => {
-                  touch('company')
-                  validate(form)
-                }}
+                onBlur={() => { touch('company'); validate(form) }}
               />
             </Field>
           </div>
 
-          <Field label="Email address" field="email" required>
+          <Field label="Email address" field="email" required error={touched.email ? errors.email : undefined}>
             <input
               type="email"
               className={inputCls('email')}
               placeholder="jane@acme.com"
               value={form.email}
               onChange={e => set('email', e.target.value)}
-              onBlur={() => {
-                touch('email')
-                validate(form)
-              }}
+              onBlur={() => { touch('email'); validate(form) }}
             />
           </Field>
 
@@ -235,7 +275,7 @@ export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
                 onChange={e => set('phone', e.target.value)}
               />
             </Field>
-            <Field label="Deal value ($)" field="value">
+            <Field label="Deal value ($)" field="value" error={touched.value ? errors.value : undefined}>
               <input
                 type="number"
                 min="0"
@@ -243,10 +283,7 @@ export function AddLeadModal({ onClose, onAdd }: AddLeadModalProps) {
                 placeholder="10,000"
                 value={form.value}
                 onChange={e => set('value', e.target.value)}
-                onBlur={() => {
-                  touch('value')
-                  validate(form)
-                }}
+                onBlur={() => { touch('value'); validate(form) }}
               />
             </Field>
           </div>

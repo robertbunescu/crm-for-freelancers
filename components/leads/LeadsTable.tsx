@@ -154,10 +154,10 @@ export function LeadsTable({ leads }: LeadsTableProps) {
           <div className="w-full">
             {/* Header - Full width on xl, hide columns at smaller breakpoints */}
             <div
-              className="grid bg-surface-2/40 border-b border-border-subtle px-5 lg:px-6 h-9"
-              style={{ gridTemplateColumns: '1.6fr 1.5fr 0.8fr 0.8fr 1fr 0.9fr auto' }}
+              className="grid bg-surface-2/40 border-b border-border-subtle px-5 lg:px-6 h-10"
+              style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.3fr 0.9fr auto' }}
             >
-              <div>
+              <div className="flex items-center">
                 <button
                   onClick={() => handleSort('name')}
                   className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
@@ -165,7 +165,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                   Lead <SortIcon field="name" />
                 </button>
               </div>
-              <div className="hidden md:block">
+              <div className="hidden md:flex items-center">
                 <button
                   onClick={() => handleSort('company')}
                   className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
@@ -173,20 +173,20 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                   Company <SortIcon field="company" />
                 </button>
               </div>
-              <div>
+              <div className="flex items-center">
                 <span className="text-micro text-text-tertiary uppercase">
                   Status
                 </span>
               </div>
-              <div>
+              <div className="flex items-center">
                 <button
                   onClick={() => handleSort('value')}
-                  className="flex items-center justify-end gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors ml-auto"
+                  className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
                 >
                   Value <SortIcon field="value" />
                 </button>
               </div>
-              <div className="hidden lg:block">
+              <div className="hidden lg:flex items-center pl-6">
                 <button
                   onClick={() => handleSort('lastContact')}
                   className="flex items-center gap-1 text-micro text-text-tertiary uppercase hover:text-text-primary transition-colors"
@@ -194,7 +194,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                   Last Contact <SortIcon field="lastContact" />
                 </button>
               </div>
-              <div className="hidden xl:block">
+              <div className="hidden xl:flex items-center">
                 <span className="text-micro text-text-tertiary uppercase">
                   Source
                 </span>
@@ -213,7 +213,7 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                   'px-5 lg:px-6 py-3.5',
                   i !== filtered.length - 1 && 'border-b border-border-subtle'
                 )}
-                style={{ gridTemplateColumns: '1.6fr 1.5fr 0.8fr 0.8fr 1fr 0.9fr auto' }}
+                style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.3fr 0.9fr auto' }}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -247,12 +247,12 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                 <div className="flex items-center">
                   <LeadStatusBadge status={lead.status} withDot />
                 </div>
-                <div className="flex items-center justify-end">
+                <div className="flex items-center">
                   <span className="font-mono tabular text-[13px] font-semibold text-text-primary">
                     {formatCurrency(lead.value)}
                   </span>
                 </div>
-                <div className="items-center hidden lg:flex">
+                <div className="items-center hidden lg:flex pl-6">
                   <div className="flex items-center gap-1.5 text-[11.5px] text-text-tertiary">
                     <Calendar className="w-3 h-3 flex-shrink-0" />
                     <span className="font-mono tabular">

@@ -59,13 +59,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Now use the verified session to update the password
+    // Set session on the client, then update password
+    await tempClient.auth.setSession({
+      access_token: signInData.session.access_token,
+      refresh_token: signInData.session.refresh_token,
+    })
+
     const { error: updateError } = await tempClient.auth.updateUser({
       password: newPassword
-    }, {
-      headers: {
-        Authorization: `Bearer ${signInData.session.access_token}`
-      }
     })
 
     if (updateError) {

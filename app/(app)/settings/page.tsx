@@ -1007,16 +1007,67 @@ function NotificationsSection() {
   })
   const [saving, setSaving] = useState(false)
 
+  useEffect(() => {
+    if (!userData?.id) return
+    fetch(`/api/notifications/preferences?userId=${userData.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data) {
+          setPrefs({
+            emailDigest: data.emailWeeklyDigest,
+            emailMentions: data.emailMentions,
+            emailDealUpdates: data.emailDealChanges,
+            inAppActivity: data.inappActivityFeed,
+            inAppReminders: data.inappTaskReminders,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [userData?.id])
+
   const toggle = (key: keyof NotificationState) =>
     setPrefs(p => ({ ...p, [key]: !p[key] }))
 
   const handleSave = async () => {
+    if (!userData?.id) return
     setSaving(true)
-    await new Promise(r => setTimeout(r, 400))
-    setSaving(false)
-    toast.success('Notification preferences saved', {
-      description: 'Your settings have been updated.',
-    })
+    try {
+      const res = await fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userData.id,
+          emailWeeklyDigest: prefs.emailDigest,
+          emailMentions: prefs.emailMentions,
+          emailDealChanges: prefs.emailDealUpdates,
+          inappActivityFeed: prefs.inAppActivity,
+          inappTaskReminders: prefs.inAppReminders,
+        })
+      })
+      if (res.ok) {
+        toast.success('Notification preferences saved', {
+          description: 'Your settings have been updated.',
+        })
+      } else {
+        toast.error('Failed to save preferences')
+      }
+    } catch {
+      toast.error('Failed to save preferences')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReset = async () => {
+    if (!userData?.id) return
+    const defaults: NotificationState = {
+      emailDigest: true,
+      emailMentions: true,
+      emailDealUpdates: false,
+      inAppActivity: true,
+      inAppReminders: true,
+    }
+    setPrefs(defaults)
   }
 
   return (
@@ -1026,7 +1077,7 @@ function NotificationsSection() {
         description="Decide which updates land in your inbox."
         footer={
           <>
-            <Button variant="secondary" size="sm">
+            <Button variant="secondary" size="sm" onClick={handleReset}>
               Reset
             </Button>
             <Button
