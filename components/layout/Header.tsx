@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useMobileMenu } from '@/contexts/MobileMenuContext'
 import { useAuth } from '@/lib/auth-context'
+import { CommandPalette } from '@/components/command-palette/CommandPalette'
 import { cn } from '@/lib/utils'
 
 interface Notification {
@@ -46,6 +47,8 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isMac, setIsMac] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const { openMenu } = useMobileMenu()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
@@ -76,6 +79,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
 
   useEffect(() => {
     setMounted(true)
+    setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform))
   }, [])
 
   useEffect(() => {
@@ -111,6 +115,17 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
     return () => document.removeEventListener('mousedown', handler)
   }, [profileOpen])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((isMac && e.metaKey && e.key === 'k') || (!isMac && e.ctrlKey && e.key === 'k')) {
+        e.preventDefault()
+        setCommandPaletteOpen(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isMac])
+
   const isDark = resolvedTheme === 'dark'
   const userName = userData?.name || 'User'
   const userEmail = userData?.email || ''
@@ -122,6 +137,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
     .slice(0, 2)
 
   return (
+    <>
     <header
       className={cn(
         'h-14 flex items-center',
@@ -191,7 +207,7 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
               'pointer-events-none'
             )}
           >
-            ⌘K
+            {mounted ? (isMac ? '⌘K' : 'Ctrl K') : ''}
           </kbd>
         </div>
 
@@ -392,5 +408,9 @@ export function Header({ title, subtitle, action, size = 'default' }: HeaderProp
       </div>
     </div>
     </header>
+    {userData?.id && (
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} userId={userData.id} />
+    )}
+    </>
   )
 }
