@@ -1,20 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import { Inter, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/lib/auth-context'
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Nexus CRM — Run your pipeline with precision',
@@ -27,9 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable}`}
+      style={{
+        '--font-inter': 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+        '--font-geist-mono': 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      } as React.CSSProperties}
     >
-      <body className={`${inter.className} font-sans`}>
+      <body className="font-sans">
         <AuthProvider>
           <ThemeProvider
             attribute="class"
