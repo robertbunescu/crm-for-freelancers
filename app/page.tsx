@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context'
 export default function LoginPage() {
   const router = useRouter()
   const { signIn } = useAuth()
-  const [email, setEmail] = useState('admin@nexuscrm.io')
+  const [email, setEmail] = useState('admin@nexus.com')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
